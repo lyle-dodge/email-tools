@@ -138,6 +138,23 @@ class EmailTools {
         if (!output || output.trim().length === 0) {
             return;
         }
+        if (output.toLowerCase().startsWith('https://teams.microsoft.com/')) {
+            const usersParam = 'users=';
+            const usersIndex = output.indexOf(usersParam);
+            if (usersIndex === -1) {
+                return;
+            }
+            const usersValueStartIndex = usersIndex + usersParam.length;
+            const urlPrefix = output.substring(0, usersValueStartIndex);
+            const usersValue = output.substring(usersValueStartIndex);
+            const sortedUsers = usersValue
+                .split(',')
+                .map(user => user.trim())
+                .filter(user => user.length > 0)
+                .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+            this.setOutput(`${urlPrefix}${sortedUsers.join(',')}`);
+            return;
+        }
         const delimiterMatch = output.match(/\r?\n|;|,/);
         if (!delimiterMatch) {
             return;
