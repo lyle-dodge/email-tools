@@ -96,6 +96,21 @@ button:active {
     transform: scale(0.98);
 }
 
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #9aa0a6 !important;
+    color: #ffffff;
+}
+
+button:disabled:hover {
+    background-color: #9aa0a6 !important;
+}
+
+button:disabled:active {
+    transform: none;
+}
+
 #btn-clear {
     background-color: #e74c3c;
 }
