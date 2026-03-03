@@ -3,12 +3,17 @@
 class EmailTools {
     private inputTextarea: HTMLTextAreaElement;
     private outputTextarea: HTMLTextAreaElement;
+    private sortButton: HTMLButtonElement | null;
+    private copyButton: HTMLButtonElement | null;
 
     constructor() {
         this.inputTextarea = document.getElementById('input-text') as HTMLTextAreaElement;
         this.outputTextarea = document.getElementById('output-text') as HTMLTextAreaElement;
+        this.sortButton = document.getElementById('btn-sort') as HTMLButtonElement | null;
+        this.copyButton = document.getElementById('btn-copy') as HTMLButtonElement | null;
 
         this.initializeEventListeners();
+        this.updateUtilityButtonsState();
     }
 
     private initializeEventListeners(): void {
@@ -38,6 +43,19 @@ class EmailTools {
 
     private setOutput(text: string): void {
         this.outputTextarea.value = text;
+        this.updateUtilityButtonsState();
+    }
+
+    private updateUtilityButtonsState(): void {
+        const hasOutput = this.outputTextarea.value.trim().length > 0;
+
+        if (this.sortButton) {
+            this.sortButton.disabled = !hasOutput;
+        }
+
+        if (this.copyButton) {
+            this.copyButton.disabled = !hasOutput;
+        }
     }
 
     /**
@@ -157,14 +175,48 @@ class EmailTools {
     private sortOutput(): void {
         const output = this.outputTextarea.value;
         
-        if (!output) {
+        if (!output || output.trim().length === 0) {
             return;
         }
+
+        if (output.toLowerCase().startsWith('https://teams.microsoft.com/')) {
+            const usersParam = 'users=';
+            const usersIndex = output.indexOf(usersParam);
+
+            if (usersIndex === -1) {
+                return;
+            }
+
+            const usersValueStartIndex = usersIndex + usersParam.length;
+            const urlPrefix = output.substring(0, usersValueStartIndex);
+            const usersValue = output.substring(usersValueStartIndex);
+
+            const sortedUsers = usersValue
+                .split(',')
+                .map(user => user.trim())
+                .filter(user => user.length > 0)
+                .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+
+            this.setOutput(`${urlPrefix}${sortedUsers.join(',')}`);
+            return;
+        }
+
+        const delimiterMatch = output.match(/\r?\n|;|,/);
+
+        if (!delimiterMatch) {
+            return;
+        }
+
+        const rawDelimiter = delimiterMatch[0];
+        const separator = rawDelimiter.includes('\n') ? '\n' : `${rawDelimiter} `;
+
+        const sortedItems = output
+            .split(/\s*(?:\r?\n|;|,)\s*/)
+            .map(item => item.trim())
+            .filter(item => item.length > 0)
+            .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
         
-        const lines = output.split('\n').filter(line => line.trim().length > 0);
-        lines.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-        
-        this.setOutput(lines.join('\n'));
+        this.setOutput(sortedItems.join(separator));
     }
 
     /**
@@ -181,7 +233,12 @@ class EmailTools {
             await navigator.clipboard.writeText(output);
             
             // Visual feedback
-            const copyBtn = document.getElementById('btn-copy') as HTMLButtonElement;
+            const copyBtn = this.copyButton;
+
+            if (!copyBtn) {
+                return;
+            }
+
             const originalText = copyBtn.textContent;
             copyBtn.textContent = 'Copied!';
             copyBtn.style.backgroundColor = '#1e8449';
